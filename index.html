@@ -1,0 +1,297 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>자리바꾸기</title>
+  <style>
+    html {
+      height: 100%;
+      width: 100%;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      color: #4a5568;
+      margin-bottom: 30px;
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .instructions {
+      margin-bottom: 40px;
+    }
+
+    .instructions p {
+      color: #718096;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    #shuffleBtn {
+      background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #shuffleBtn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+      background: linear-gradient(45deg, #FF8E8E, #6EDFD9);
+    }
+
+    #shuffleBtn:active {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .seat {
+      width: 80px;
+      height: 80px;
+      border: none;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 16px;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .seat::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .seat:hover {
+      transform: translateY(-5px) scale(1.05);
+      box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .seat:hover::before {
+      opacity: 1;
+    }
+
+    .seat.selected {
+      background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+      transform: translateY(-8px) scale(1.1);
+      box-shadow: 0 20px 30px rgba(0, 0, 0, 0.3);
+      color: #2d3436;
+    }
+
+    .seat.swapping {
+      background: linear-gradient(135deg, #00cec9 0%, #55a3ff 100%);
+      animation: flipSwap 0.6s ease-in-out;
+    }
+
+    @keyframes flipSwap {
+      0% { 
+        transform: rotateY(0deg) scale(1);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      }
+      50% { 
+        transform: rotateY(90deg) scale(1.1);
+        box-shadow: 0 25px 40px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%);
+      }
+      100% { 
+        transform: rotateY(0deg) scale(1);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .seat-grid {
+        grid-template-columns: repeat(5, 1fr);
+      }
+      
+      .seat {
+        width: 60px;
+        height: 60px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>자리바꾸기</h1>
+    <div class="instructions">
+      <button id="shuffleBtn">🔀 자리 바꾸기</button>
+    </div>
+    <div class="seat-grid" id="seatGrid">
+    </div>
+  </div>
+
+  <script>
+    class SeatSwapper {
+      constructor() {
+        this.seats = [];
+        this.selectedSeat = null;
+        this.seatGrid = document.getElementById('seatGrid');
+        this.shuffleBtn = document.getElementById('shuffleBtn');
+        
+        this.init();
+      }
+      
+      init() {
+        this.createSeats();
+        this.renderSeats();
+        this.setupEventListeners();
+      }
+      
+      createSeats() {
+        // 1번부터 30번까지 자리 생성
+        for (let i = 1; i <= 30; i++) {
+          this.seats.push({
+            id: i,
+            number: i,
+            element: null
+          });
+        }
+      }
+      
+      renderSeats() {
+        this.seatGrid.innerHTML = '';
+        
+        this.seats.forEach((seat, index) => {
+          const seatElement = document.createElement('div');
+          seatElement.className = 'seat';
+          seatElement.textContent = seat.number;
+          seatElement.dataset.index = index;
+          
+          seatElement.addEventListener('click', () => this.handleSeatClick(index));
+          
+          seat.element = seatElement;
+          this.seatGrid.appendChild(seatElement);
+        });
+      }
+      
+      handleSeatClick(index) {
+        const clickedSeat = this.seats[index];
+        
+        if (this.selectedSeat === null) {
+          // 첫 번째 자리 선택
+          this.selectedSeat = index;
+          clickedSeat.element.classList.add('selected');
+        } else if (this.selectedSeat === index) {
+          // 같은 자리를 다시 클릭하면 선택 취소
+          this.selectedSeat = null;
+          clickedSeat.element.classList.remove('selected');
+        } else {
+          // 다른 자리를 클릭하면 이전 선택 해제하고 새로운 자리 선택
+          this.seats[this.selectedSeat].element.classList.remove('selected');
+          this.selectedSeat = index;
+          clickedSeat.element.classList.add('selected');
+        }
+      }
+      
+      
+      
+      setupEventListeners() {
+        this.shuffleBtn.addEventListener('click', () => this.shuffle());
+      }
+      
+      shuffle() {
+        // 현재 자리 번호들을 배열로 추출
+        const numbers = this.seats.map(seat => seat.number);
+        
+        // Fisher-Yates 알고리즘으로 배열 섞기
+        for (let i = numbers.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+        }
+        
+        // 섞인 번호를 각 자리에 할당하고 애니메이션 효과 추가
+        this.seats.forEach((seat, index) => {
+          seat.element.classList.add('swapping');
+        });
+        
+        setTimeout(() => {
+          this.seats.forEach((seat, index) => {
+            seat.number = numbers[index];
+            seat.element.textContent = seat.number;
+            seat.element.classList.remove('swapping', 'selected');
+          });
+          
+          this.selectedSeat = null;
+        }, 500);
+      }
+      
+      reset() {
+        // 모든 자리를 원래 번호로 복원
+        this.seats.forEach((seat, index) => {
+          seat.number = seat.id;
+          if (seat.element) {
+            seat.element.textContent = seat.number;
+            seat.element.classList.remove('selected', 'swapping');
+          }
+        });
+        
+        this.selectedSeat = null;
+      }
+    }
+
+    // 페이지 로드 시 자리바꾸기 앱 시작
+    document.addEventListener('DOMContentLoaded', () => {
+      new SeatSwapper();
+    });
+  </script>
+</body>
+
+</html>
